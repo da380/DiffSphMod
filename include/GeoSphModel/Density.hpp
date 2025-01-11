@@ -2,4 +2,4 @@
 
 #include "Geometry.hpp"
 
-namespace RadialModel {}
+namespace GeoSphModel {}
