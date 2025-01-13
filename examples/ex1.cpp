@@ -5,22 +5,23 @@
 #include <cstddef>
 #include <iostream>
 
-template <NumericConcepts::Real _Real> class Model;
+template <NumericConcepts::Real _Real> class SphericalGeometry;
 
 namespace GeoSphModel::Internal {
 
-template <NumericConcepts::Real _Real> struct Traits<Model<_Real>> {
+template <NumericConcepts::Real _Real> struct Traits<SphericalGeometry<_Real>> {
   using Int = std::ptrdiff_t;
   using Real = _Real;
 };
 } // namespace GeoSphModel::Internal
 
 template <NumericConcepts::Real _Real>
-class Model : public GeoSphModel::Geometry<Model<_Real>> {
+class SphericalGeometry
+    : public GeoSphModel::Geometry<SphericalGeometry<_Real>> {
 
 public:
   using Real = _Real;
-  using Base = typename GeoSphModel::Geometry<Model<Real>>;
+  using Base = typename GeoSphModel::Geometry<SphericalGeometry<Real>>;
   using Int = typename Base::Int;
   using Vector = typename Base::Vector;
   using Matrix = typename Base::Matrix;
@@ -45,7 +46,7 @@ private:
 };
 
 int main() {
-  auto model = Model<double>();
+  auto model = SphericalGeometry<double>();
 
   auto F = model.DeformationGradient(0.1, 0, 0, 0);
   auto J = model.Jacobian(0.1, 0, 0, 0);
