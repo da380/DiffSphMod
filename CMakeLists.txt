@@ -28,6 +28,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Dimensions)
 
+# add in Eigen3
+FetchContent_Declare(
+  Eigen3
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(Eigen3)
+
 # add in Interpolation library. 
 FetchContent_Declare(
   Interpolation

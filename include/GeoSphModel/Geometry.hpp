@@ -2,12 +2,14 @@
 
 #include "Dimensions/Dimensions.hpp"
 #include "NumericConcepts/Numeric.hpp"
+#include <Eigen/Dense>
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <ranges>
 #include <utility>
 
-namespace RadialModel {
+namespace GeoSphModel {
 
 namespace Internal {
 
@@ -22,6 +24,8 @@ public:
   // Typedefs from traits
   using Int = typename Internal::Traits<_Derived>::Int;
   using Real = typename Internal::Traits<_Derived>::Real;
+  using Vector = Eigen::Matrix<Real, 3, 1>;
+  using Matrix = Eigen::Matrix<Real, 3, 3>;
 
   //------------------------------------------------//
   //      Defined methods in the derived class      //
@@ -44,12 +48,12 @@ public:
     return Derived().ReferentialBoundaryRadius();
   }
 
-  // Return radial mapping, \xi,  in the ith layer. This is such that
-  // the point (r, \theta, \phi) in the reference model is mapped to the
-  // point (\xi(r,ztheta, \phi), \theta, \phi) in the physical model.
-  std::function<Real(Real, Real, Real)> RadialMapping(Int i) const {
-    assert(i < NumberOfLayers());
-    return Derived().RadialMapping(i);
+  Real Mapping(Real r, Real theta, Real phi, Int i) const {
+    return Derived().Mapping(r, theta, phi, i);
+  }
+
+  Vector MappingGradient(Real r, Real theta, Real phi, Int i) const {
+    return Derived().MappingGradient(r, theta, phi, i);
   }
 
   //-----------------------------------------------//
@@ -78,21 +82,35 @@ public:
                      ReferentialBoundaryRadius(i + 1)};
   }
 
-  // Return a function that giving the spatial radius on the ith boundary.
-  auto SpatialBoundaryRadiusFunction(Int i) const {
-    assert(i < NumberOfBoundaries());
-    return [this, i](auto theta, auto phi) {
-      auto xi = RadialMapping(i);
-      auto r = ReferentialBoundaryRadius(i);
-      return xi(r, theta, phi);
-    };
+  // Return the deformation gradient in the ith layer relative to the polar
+  // basis in both the referential and spatial manifolds.
+  Matrix DeformationGradient(Real r, Real theta, Real phi, Int i) const {
+    Real ri = r > 0 ? static_cast<Real>(1) / r : 0;
+    auto I = IdentityMatrix();
+    auto h = Mapping(r, theta, phi, i);
+    auto dh = MappingGradient(r, theta, phi, i);
+    auto x = PolarToCartesian(r, theta, phi);
+    return (1 + h * ri) * I +
+           x * (dh.transpose() - h * x.transpose() * ri * ri) * ri;
   }
 
-  // Return functions giving the boundary radii for the ith layer.
-  auto SpatialBoundaryRadiusFunctionsForLayer(Int i) const {
-    assert(i < NumberOfLayers());
-    return std::pair{SpatialBoundaryRadiusFunction(i),
-                     SpatialBoundaryRadiusFunction(i + 1)};
+  Matrix InverseDeformationGradient(Real r, Real theta, Real phi, Int i) const {
+    Real ri = r > 0 ? static_cast<Real>(1) / r : 0;
+    auto I = IdentityMatrix();
+    auto h = Mapping(r, theta, phi, i);
+    auto dh = MappingGradient(r, theta, phi, i);
+    auto x = PolarToCartesian(r, theta, phi);
+    return (I - x * ri * (dh.transpose() - h * x.transpose() * ri * ri) /
+                    (1 + dh(0))) /
+           std::pow(1 + h * ri, 2);
+  }
+
+  // Return the Jacobian in the ith layer.
+  Real Jacobian(Real r, Real theta, Real phi, Int i) const {
+    Real ri = r > 0 ? static_cast<Real>(1) / r : 0;
+    auto h = Mapping(r, theta, phi, i);
+    auto dh = MappingGradient(r, theta, phi, i);
+    return std::pow(1 + h * ri, 2) * (1 + dh(0));
   }
 
 private:
@@ -101,5 +119,24 @@ private:
   constexpr auto &Derived() const {
     return static_cast<const _Derived &>(*this);
   }
+
+  // Identity matrix.
+  Matrix IdentityMatrix() const {
+    return Matrix{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  }
+
+  // Convert polar to cartesian coordinates.
+  auto PolarToCartesian(Real r, Real theta, Real phi) const {
+    return Vector(r * std::sin(theta) * std::cos(phi),
+                  r * std::sin(theta) * std::sin(phi), r * std::cos(theta));
+  }
+
+  // Convert cartesian to polar coordinates.
+  auto CartesianToPolar(const Vector &x) const {
+    auto r = x.norm();
+    auto theta = std::atan2(x(2), r);
+    auto phi = std::atan2(x(0), x(1));
+    return std::tuple{r, theta, phi};
+  }
 };
-} // namespace RadialModel
+} // namespace GeoSphModel
