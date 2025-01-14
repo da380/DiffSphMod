@@ -1,24 +1,26 @@
 #pragma once
 
-#include "Geometry.hpp"
+#include "Density.hpp"
+#include <complex>
 
 namespace GeoSphModel {
 
-template <typename _Derived> class Density;
+template <typename _Derived> class Viscoelastic;
 
 namespace Internal {
-template <typename _Derived> struct Traits<Density<_Derived>> {
+template <typename _Derived> struct Traits<Viscoelastic<_Derived>> {
   using Int = typename Traits<_Derived>::Int;
   using Real = typename Traits<_Derived>::Real;
 };
 } // namespace Internal
 
 template <typename _Derived>
-class Density : public Geometry<Density<_Derived>> {
+class Viscoelastic : public Density<Viscoelastic<_Derived>> {
 public:
   // Typedefs from traits
   using Int = typename Internal::Traits<_Derived>::Int;
   using Real = typename Internal::Traits<_Derived>::Real;
+  using Complex = std::complex<Real>;
   using Vector = Eigen::Matrix<Real, 3, 1>;
   using Matrix = Eigen::Matrix<Real, 3, 3>;
 
@@ -57,6 +59,14 @@ public:
   // Return the referential density in the ith layer.
   Real ReferentialDensity(Real r, Real theta, Real phi, Int i) const {
     return Derived().ReferentialDensity(r, theta, phi, i);
+  }
+
+  // Return a component of the viscoelastic tensor in the ith layer.
+  Complex ReferentialViscoelasticModulus(Real r, Real theta, Real phi,
+                                         Real omega, Int i, Int j, Int k, Int l,
+                                         Int layer) const {
+    return Derived().ReferentialViscoelasticModulus(r, theta, phi, omega, i, j,
+                                                    k, l, layer);
   }
 
   //-------------------------------------------------------------------//
