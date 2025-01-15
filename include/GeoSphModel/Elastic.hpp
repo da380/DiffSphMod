@@ -1,24 +1,25 @@
 #pragma once
 
-#include "Geometry.hpp"
+#include "Viscoelastic.hpp"
 
 namespace GeoSphModel {
 
-template <typename _Derived> class Density;
+template <typename _Derived> class Elastic;
 
 namespace Internal {
-template <typename _Derived> struct Traits<Density<_Derived>> {
+template <typename _Derived> struct Traits<Elastic<_Derived>> {
   using Int = typename Traits<_Derived>::Int;
   using Real = typename Traits<_Derived>::Real;
 };
 } // namespace Internal
 
 template <typename _Derived>
-class Density : public Geometry<Density<_Derived>> {
+class Elastic : public Viscoelastic<Elastic<_Derived>> {
 public:
   // Typedefs from traits
   using Int = typename Internal::Traits<_Derived>::Int;
   using Real = typename Internal::Traits<_Derived>::Real;
+  using Complex = std::complex<Real>;
   using Vector = Eigen::Matrix<Real, 3, 1>;
   using Matrix = Eigen::Matrix<Real, 3, 3>;
 
@@ -59,9 +60,22 @@ public:
     return Derived().ReferentialDensity(r, theta, phi, i);
   }
 
+  // Return a component of the viscoelastic tensor in the ith layer.
+  Real ReferentialSecondElasticTensor(Real r, Real theta, Real phi, Int i,
+                                      Int j, Int k, Int l, Int layer) const {
+    return Derived().ReferentialSecondElasticTensor(r, theta, phi, i, j, k, l,
+                                                    layer);
+  }
+
   //-------------------------------------------------------------------//
   //                          Induced methods                          //
   //-------------------------------------------------------------------//
+  // Return a component of the viscoelastic tensor in the ith layer.
+  Complex ReferentialSecondViscoelasticTensor(Real r, Real theta, Real phi,
+                                              Real omega, Int i, Int j, Int k,
+                                              Int l, Int layer) const {
+    return ReferentialSecondElasticTensor(r, theta, phi, i, j, k, l, layer);
+  }
 
 private:
   constexpr auto &Derived() { return static_cast<_Derived &>(*this); }

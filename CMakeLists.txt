@@ -1,13 +1,19 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(
-    GeoSphModel
+    DiffSphMod
     VERSION 0.0.1
     LANGUAGES CXX)
 
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)    
+
+
+
+# add in Boost
+find_package(Boost)
+
 
 # add in NumericConcepts
 include(FetchContent)
@@ -46,7 +52,7 @@ FetchContent_MakeAvailable(Interpolation)
 
 
 add_library(${PROJECT_NAME} INTERFACE)
-target_link_libraries(${PROJECT_NAME} INTERFACE NumericConcepts Dimensions Interpolation)
+target_link_libraries(${PROJECT_NAME} INTERFACE Boost::boost NumericConcepts Dimensions Interpolation)
 
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)

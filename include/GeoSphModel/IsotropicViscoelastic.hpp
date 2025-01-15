@@ -1,24 +1,27 @@
 #pragma once
 
-#include "Geometry.hpp"
+#include "Viscoelastic.hpp"
+#include <complex>
 
 namespace GeoSphModel {
 
-template <typename _Derived> class Density;
+template <typename _Derived> class IsotropicViscoelastic;
 
 namespace Internal {
-template <typename _Derived> struct Traits<Density<_Derived>> {
+template <typename _Derived> struct Traits<IsotropicViscoelastic<_Derived>> {
   using Int = typename Traits<_Derived>::Int;
   using Real = typename Traits<_Derived>::Real;
 };
 } // namespace Internal
 
 template <typename _Derived>
-class Density : public Geometry<Density<_Derived>> {
+class IsotropicViscoelastic
+    : public Viscoelastic<IsotropicViscoelastic<_Derived>> {
 public:
   // Typedefs from traits
   using Int = typename Internal::Traits<_Derived>::Int;
   using Real = typename Internal::Traits<_Derived>::Real;
+  using Complex = std::complex<Real>;
   using Vector = Eigen::Matrix<Real, 3, 1>;
   using Matrix = Eigen::Matrix<Real, 3, 3>;
 
@@ -59,9 +62,33 @@ public:
     return Derived().ReferentialDensity(r, theta, phi, i);
   }
 
+  // Return the viscoelastic bulk modulus in the ith layer.
+  Complex ReferentialViscoelasticBulkModulus(Real r, Real theta, Real phi,
+                                             Real omega, Int i) const {
+    return Derived().ReferentialViscoelasticBulkModulus(r, theta, phi, omega,
+                                                        i);
+  }
+
+  // Return the viscoelastic shear modulus in the ith layer.
+  Real ReferentialViscoelasticShearModulus(Real r, Real theta, Real phi,
+                                           Real omega, Int i) const {
+    return Derived().ReferentialViscoelasticShearModulus(r, theta, phi, omega,
+                                                         i);
+  }
+
   //-------------------------------------------------------------------//
   //                          Induced methods                          //
   //-------------------------------------------------------------------//
+
+  // Return a component of the viscoelastic tensor in the ith layer.
+  Complex ReferentialSecondViscoelasticTensor(Real r, Real theta, Real phi,
+                                              Real omega, Int i, Int j, Int k,
+                                              Int l, Int layer) const {
+    auto kappa = ReferentialBulkModulus(r, theta, phi, omega, i);
+    auto mu = ReferentialShearModulus(r, theta, phi, omega, i);
+    return kappa * Delta(i, j) * Delta(k, l) +
+           mu * (Delta(i, k) * Delta(j, l) + Delta(i, l) * Delta(j, k));
+  }
 
 private:
   constexpr auto &Derived() { return static_cast<_Derived &>(*this); }

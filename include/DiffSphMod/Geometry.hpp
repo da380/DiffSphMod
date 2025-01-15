@@ -1,23 +1,23 @@
 #pragma once
 
 #include "Dimensions/Dimensions.hpp"
-#include "NumericConcepts/Numeric.hpp"
+#include "Traits.hpp"
 #include "Utility.hpp"
-#include <Eigen/Dense>
-#include <cassert>
-#include <cmath>
-#include <functional>
+#include <Eigen/Core>
+#include <boost/math/tools/roots.hpp>
+#include <cstddef>
+#include <iostream>
+#include <limits>
 #include <ranges>
-#include <utility>
 
-namespace GeoSphModel {
+namespace DiffSphMod {
 
 template <typename _Derived>
 class Geometry : public Dimensions::Dimensions<Geometry<_Derived>> {
 
 public:
   // Typedefs from traits
-  using Int = typename Internal::Traits<_Derived>::Int;
+  using Int = std::ptrdiff_t;
   using Real = typename Internal::Traits<_Derived>::Real;
   using Vector = Eigen::Matrix<Real, 3, 1>;
   using Matrix = Eigen::Matrix<Real, 3, 3>;
@@ -39,7 +39,7 @@ public:
   }
 
   // The radial , h, is such that in the ith layer the referential point
-  // (r, \theta, \phi) is taken to (r + h(r,\theta,\phi,i), \theta, \phi).
+  // (r, \theta, \phi) is taken to (h(r,\theta,\phi,i), \theta, \phi).
   Real RadialMapping(Real r, Real theta, Real phi, Int i) const {
     return Derived().RadialMapping(r, theta, phi, i);
   }
@@ -62,6 +62,11 @@ public:
     return std::ranges::views::iota(0, NumberOfLayers());
   }
 
+  // Returns a range over the boundary Indices.
+  auto BoundaryIndices() const {
+    return std::ranges::views::iota(0, NumberOfBoundaries());
+  }
+
   // Return a range of the referential layer radii
   auto ReferentialBoundaryRadii() const {
     return LayerIndices() | std::ranges::views::transform([this](auto i) {
@@ -71,9 +76,8 @@ public:
 
   // Return the boundary radii for the ith layer.
   auto ReferentialBoundaryRadiiForLayer(Int i) const {
-    assert(i < NumberOfLayers());
-    return std::pair{ReferentialBoundaryRadius(i),
-                     ReferentialBoundaryRadius(i + 1)};
+    return std::pair<Real, Real>{ReferentialBoundaryRadius(i),
+                                 ReferentialBoundaryRadius(i + 1)};
   }
 
   // Return the deformation gradient in the ith layer relative to the polar
@@ -84,8 +88,9 @@ public:
     auto h = RadialMapping(r, theta, phi, i);
     auto dh = RadialMappingGradient(r, theta, phi, i);
     auto x = PolarToCartesian(r, theta, phi);
-    return (1 + h * ri) * I +
-           x * (dh.transpose() - h * x.transpose() * ri * ri) * ri;
+    // return h * ri * I + x * (dh.transpose() - h * x.transpose() * ri * ri) *
+    // ri;
+    return I;
   }
 
   Matrix InverseDeformationGradient(Real r, Real theta, Real phi, Int i) const {
@@ -94,9 +99,10 @@ public:
     auto h = RadialMapping(r, theta, phi, i);
     auto dh = RadialMappingGradient(r, theta, phi, i);
     auto x = PolarToCartesian(r, theta, phi);
-    return (I - x * ri * (dh.transpose() - h * x.transpose() * ri * ri) /
-                    (1 + dh(0))) /
-           std::pow(1 + h * ri, 2);
+    // return (I - x * ri * (dh.transpose() - h * x.transpose() * ri * ri) /
+    //                 (1 + dh(0))) /
+    //        std::pow(1 + h * ri, 2);
+    return I;
   }
 
   // Return the Jacobian in the ith layer.
@@ -104,7 +110,27 @@ public:
     Real ri = r > 0 ? static_cast<Real>(1) / r : 0;
     auto h = RadialMapping(r, theta, phi, i);
     auto dh = RadialMappingGradient(r, theta, phi, i);
-    return std::pow(1 + h * ri, 2) * (1 + dh(0));
+    return std::pow(h * ri, 2) * dh(0);
+  }
+
+  // Return the inverse radial mapping in the ith layer.
+  Real InverseRadialMapping(Real s, Real theta, Real phi, Int i) const {
+
+    // Set the radial bounds.
+    auto [r0, r1] = ReferentialBoundaryRadiiForLayer(i);
+    auto s0 = RadialMapping(r0, theta, phi, i);
+    auto s1 = RadialMapping(r1, theta, phi, i);
+
+    // Function for root finding.
+    auto func = [this, theta, phi, i, s](auto r) {
+      auto h = RadialMapping(r, theta, phi, i) - s;
+      auto dh = RadialMappingGradient(r, theta, phi, i)(0);
+      return std::pair{h, dh};
+    };
+
+    // Solve with Newton Raphson.
+    return boost::math::tools::newton_raphson_iterate(
+        func, 0.5 * (r0 + r1), r0, r1, std::numeric_limits<Real>::digits);
   }
 
 private:
@@ -115,4 +141,4 @@ private:
   }
 };
 
-} // namespace GeoSphModel
+} // namespace DiffSphMod

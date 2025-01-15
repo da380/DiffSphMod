@@ -4,11 +4,7 @@
 #include <Eigen/Dense>
 #include <cmath>
 
-namespace GeoSphModel {
-
-namespace Internal {
-template <typename _Derived> struct Traits {};
-} // namespace Internal
+namespace DiffSphMod {
 
 // Identity matrix.
 template <NumericConcepts::Real Real>
@@ -44,9 +40,4 @@ Eigen::Matrix<Real, 3, 1> IdentityRadialMappingGradient(Real r, Real theta,
                                                         Real phi, Int i) {
   return Eigen::Matrix<Real, 3, 1>(0, 0, 0);
 }
-
-// Kronecker delta tensor.
-template <NumericConcepts::Integral Int> Int Delta(Int i, Int j) {
-  return i == j ? 1 : 0;
-}
-} // namespace GeoSphModel
+} // namespace DiffSphMod

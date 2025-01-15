@@ -41,7 +41,7 @@ public:
 
   // Return the radius of the ith referential layer boundary.
   Real ReferentialBoundaryRadius(Int i) const {
-    return Derived().ReferentialBoundaryRadius();
+    return Derived().ReferentialBoundaryRadius(i);
   }
 
   // The mapping, h, is such that in the ith layer the referential point (r,
@@ -62,11 +62,11 @@ public:
   }
 
   // Return a component of the viscoelastic tensor in the ith layer.
-  Complex ReferentialViscoelasticModulus(Real r, Real theta, Real phi,
-                                         Real omega, Int i, Int j, Int k, Int l,
-                                         Int layer) const {
-    return Derived().ReferentialViscoelasticModulus(r, theta, phi, omega, i, j,
-                                                    k, l, layer);
+  Complex ReferentialSecondViscoelasticTensor(Real r, Real theta, Real phi,
+                                              Real omega, Int i, Int j, Int k,
+                                              Int l, Int layer) const {
+    return Derived().ReferentialSecondViscoelasticTensor(r, theta, phi, omega,
+                                                         i, j, k, l, layer);
   }
 
   //-------------------------------------------------------------------//

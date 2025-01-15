@@ -52,9 +52,9 @@ public:
   }
 
   // Set the viscoelastic modulus
-  Complex ReferentialViscoelasticModulus(Real r, Real theta, Real phi,
-                                         Real omega, Int i, Int j, Int k, Int l,
-                                         Int layer) const {
+  Complex ReferentialSecondViscoelasticTensor(Real r, Real theta, Real phi,
+                                              Real omega, Int i, Int j, Int k,
+                                              Int l, Int layer) const {
     using GeoSphModel::Delta;
     return _lambda * Delta(i, j) * Delta(k, l) +
            _mu * (Delta(i, k) * Delta(j, l) + Delta(i, l) * Delta(j, k));
@@ -75,6 +75,7 @@ int main() {
   std::cout << J << std::endl;
 
   std::cout << model.ReferentialDensity(0.1, 0, 0, 0) << std::endl;
-  std::cout << model.ReferentialViscoelasticModulus(0.1, 0, 0, 0, 1, 1, 1, 1, 0)
+  std::cout << model.ReferentialSecondViscoelasticTensor(0.1, 0, 0, 0, 1, 1, 1,
+                                                         1, 0)
             << std::endl;
 }
